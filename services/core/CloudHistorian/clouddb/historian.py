@@ -95,10 +95,10 @@ from volttron.platform.agent.base_historian import BaseHistorian
 protocol = IoTHubTransportProvider.HTTP
 
 # The connection string for the device to communicate with the IOT hub
-connection_string = "HostName=volttron-iot-demo.azure-devices.net;DeviceId=Myvm;SharedAccessKey=***************************************"
-# connection_string = "HostName=volttron-iot-demo.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=******************************************"
+connection_string = "HostName=*****************;DeviceId=Myvm;SharedAccessKey=***************************************"
+# connection_string = "HostName=*****************t;SharedAccessKeyName=iothubowner;SharedAccessKey=******************************************"
 #
-# HostName=volttron-iot-demo.azure-devices.net;DeviceId=Myvm;SharedAccessKey=*************************************************
+# HostName=*************************;DeviceId=Myvm;SharedAccessKey=*************************************************
 #-----------------------------------------------------
 FORWARD_TIMEOUT_KEY = 'FORWARD_TIMEOUT_KEY'
 utils.setup_logging()
