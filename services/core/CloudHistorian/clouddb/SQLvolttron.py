@@ -1,6 +1,6 @@
 # import pymssql
 #
-# conn = pymssql.connect(server='volttroniot.database.windows.net', user='volttron@volttroniot', password='vvvVVV123@@@', database='database_volttron')
+# conn = pymssql.connect(server='*******t', user='*******', password='*******', database='database_name')
 #
 # # cursor = conn.cursor()
 # query3= ("CREATE TABLE VolttronTest12(SetPointID int,ParameterName varchar(255),ParameterValue int);")
@@ -23,8 +23,8 @@
 
 import pymssql
 
-conn = pymssql.connect(server='volttroniot.database.windows.net', user='volttron@volttroniot', password='vvvVVV123@@@',
-                       database='database1')
+conn = pymssql.connect(server='*****', user='*******', password='*******',
+                       database='database_name')
 cur = conn.cursor()
 conn.autocommit(True)
 cur.execute('CREATE TABLE test2(id INT, name VARCHAR(100))')
