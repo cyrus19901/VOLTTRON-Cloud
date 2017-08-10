@@ -21,7 +21,7 @@ send_callbacks = 0
 protocol = IoTHubTransportProvider.HTTP
 
 # The connection string for the device
-connection_string = "HostName=volttron-iot-demo.azure-devices.net;DeviceId=Myvm;SharedAccessKey=qO81QDqFzy6UeEFCd1/H01ie2PsL6Dkxgfz+2p+3h3w="
+connection_string = "HostName=volttron-iot-demo.azure-devices.net;DeviceId=Myvm;SharedAccessKey=*******************************************"
 
 
 #the message we want to send to the cloud
