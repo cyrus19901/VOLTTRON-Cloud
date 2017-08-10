@@ -95,16 +95,16 @@ from volttron.platform.agent.base_historian import BaseHistorian
 protocol = IoTHubTransportProvider.HTTP
 
 # The connection string for the device to communicate with the IOT hub
-connection_string = "HostName=volttron-iot-demo.azure-devices.net;DeviceId=Myvm;SharedAccessKey=qO81QDqFzy6UeEFCd1/H01ie2PsL6Dkxgfz+2p+3h3w="
-# connection_string = "HostName=volttron-iot-demo.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=cEdgd7sPcb9MfTqhCfUXYL8p3QHphcq9f2AsV7KiUDg="
+connection_string = "HostName=volttron-iot-demo.azure-devices.net;DeviceId=Myvm;SharedAccessKey=***************************************"
+# connection_string = "HostName=volttron-iot-demo.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=******************************************"
 #
-# HostName=volttron-iot-demo.azure-devices.net;DeviceId=Myvm;SharedAccessKey=qO81QDqFzy6UeEFCd1/H01ie2PsL6Dkxgfz+2p+3h3w=
+# HostName=volttron-iot-demo.azure-devices.net;DeviceId=Myvm;SharedAccessKey=*************************************************
 #-----------------------------------------------------
 FORWARD_TIMEOUT_KEY = 'FORWARD_TIMEOUT_KEY'
 utils.setup_logging()
 _log = logging.getLogger(__name__)
 __version__ = '3.5'
-conn = pymssql.connect(server='volttroniot.database.windows.net', user='volttron@volttroniot', password='vvvVVV123@@@',
+conn = pymssql.connect(server='volttroniot.database.windows.net', user='userID', password='password',
                        database='database1')
 cursor = conn.cursor()
 conn.autocommit(True)
