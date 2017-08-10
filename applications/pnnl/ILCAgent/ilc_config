@@ -17,8 +17,8 @@
 	"average_building_power_window": 5.0,
 	"clusters": [ 
 		{
-			"device_file_path": "sim_cluster_config",
-			"critieria_file_path": "hp_cluster.xls",
+			"device_file_path": "/home/rajveer/Desktop/volttron/applications/pnnl/ILCAgent/sim_cluster_config",
+			"critieria_file_path": "/home/rajveer/Desktop/volttron/applications/pnnl/ILCAgent/hp_cluster.xls",
 			"cluster_priority": 1.0
 		}
 #		{

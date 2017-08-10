@@ -52,24 +52,27 @@
 # under Contract DE-AC05-76RL01830
 
 #}}}
-
 from __future__ import absolute_import
+import gevent
+
+
 
 from datetime import datetime
 import logging
 import random
 import sys
-
 from volttron.platform.vip.agent import Agent, Core, PubSub, compat
 from volttron.platform.agent import utils
 from volttron.platform.messaging import headers as headers_mod
+from volttron.platform.messaging import topics, headers as headers_mod
+from volttron.platform.messaging.health import (STATUS_BAD,
+                                                STATUS_GOOD, Status)
 
 
-
-
+FORWARD_TIMEOUT_KEY = 'FORWARD_TIMEOUT_KEY'
 utils.setup_logging()
 _log = logging.getLogger(__name__)
-__version__ = '3.0'
+__version__ = '3.5'
 
 '''
 Structuring the agent this way allows us to grab config file settings 
@@ -78,158 +81,51 @@ for use in subscriptions instead of hardcoding them.
 
 def subscriber_agent(config_path, **kwargs):
     config = utils.load_config(config_path)
-    oat_point= config.get('oat_point',
-                          'devices/Building/LAB/Device/OutsideAirTemperature')
-    mixed_point= config.get('mixed_point',
-                            'devices/Building/LAB/Device/MixedAirTemperature')
-    damper_point= config.get('damper_point',
-                             'devices/Building/LAB/Device/DamperSignal')
-    all_topic = config.get('all_topic', 
-                           'devices/Building/LAB/Device/all')
-    query_point= config.get('query_point',
-                            'Building/LAB/Device/OutsideAirTemperature')
-    
-    
+    destination_vip = config.get('destination-vip')
+    subscriber_identity = config.get('subscriber_identity', None)
+
     class ExampleSubscriber(Agent):
         '''
         This agent demonstrates usage of the 3.0 pubsub service as well as 
         interfacting with the historian. This agent is mostly self-contained, 
         but requires the histoiran be running to demonstrate the query feature.
         '''
-    
+
         def __init__(self, **kwargs):
             super(ExampleSubscriber, self).__init__(**kwargs)
-    
-        @Core.receiver('onsetup')
+
+
+        @Core.receiver('onstart')
         def setup(self, sender, **kwargs):
             # Demonstrate accessing a value from the config file
             self._agent_id = config['agentid']
-    
-    
+            try:
+                # _log.debug("Setting up to forward to {}".format(destination_vip))
+                event = gevent.event.Event()
+                agent = Agent(address=destination_vip)
+                agent.core.onstart.connect(lambda *a, **kw: event.set(), event)
+                gevent.spawn(agent.core.run)
+                event.wait(timeout=10)
+                self._target_platform = agent
 
-        @PubSub.subscribe('pubsub', all_topic)
-        def match_device_all(self, peer, sender, bus,  topic, headers, message):
-            '''
-            This method subscribes to all points under a device then pulls out 
-            the specific point it needs.
-            The first element of the list in message is a dictionairy of points 
-            under the device. The second element is a dictionary of metadata for points.
-            '''
-                       
-            print("Whole message", message)
-            
-            #The time stamp is in the headers
-            print('Date', headers['Date'])
-            
-            #Pull out the value for the point of interest
-            print("Value", message[0]['OutsideAirTemperature'])
-            
-            #Pull out the metadata for the point
-            print('Unit', message[1]['OutsideAirTemperature']['units'])
-            print('Timezone', message[1]['OutsideAirTemperature']['tz'])
-            print('Type', message[1]['OutsideAirTemperature']['type'])
-           
+            except gevent.Timeout:
+                self.vip.health.set_status(
+                    STATUS_BAD, "Timeout in setup of agent")
+                status = Status.from_json(self.vip.health.get_status())
+                self.vip.health.send_alert(FORWARD_TIMEOUT_KEY,
+                                           status)
+            agent.vip.pubsub.subscribe(peer='pubsub', prefix='devices/PNNL/', callback=self.on_match)
 
-    
-        @PubSub.subscribe('pubsub', oat_point)
-        def on_match_OAT(self, peer, sender, bus,  topic, headers, message):
-            '''
-            This method subscribes to the specific point topic.
-            For these topics, the value is the first element of the list 
-            in message.
-            '''
-            
-            print("Whole message", message)
-            print('Date', headers['Date'])
-            print("Value", message[0])
-            print("Units", message[1]['units'])
-            print("TimeZone", message[1]['tz'])
-            print("Type", message[1]['type'])
-            
-    
-        @PubSub.subscribe('pubsub', '')
-        def on_match_all(self, peer, sender, bus,  topic, headers, message):
-            ''' This method subscibes to all topics. It simply prints out the 
-            topic seen.
-            '''
-            
-            print(topic)
-#     
-        # Demonstrate periodic decorator and settings access
-        @Core.periodic(10)
-        def lookup_data(self):
-            '''
-            This method demonstrates how to query the platform historian for data
-            This will require that the historian is already running on the platform.
-            '''
-            
-            try: 
-                
-                result = self.vip.rpc.call(
-                                           #Send this message to the platform historian
-                                           #Using the reserved ID
-                                           'platform.historian', 
-                                           #Call the query method on this agent
-                                           'query', 
-                                           #query takes the keyword arguments of:
-                                           #topic, then optional: start, end, count, order
-#                                            start= "2015-10-14T20:51:56",
-                                           topic=query_point,
-                                           count = 20,
-                                           #RPC uses gevent and we must call .get(timeout=10)
-                                           #to make it fetch the result and tell 
-                                           #us if there is an error
-                                           order = "FIRST_TO_LAST").get(timeout=10)
-                print('Query Result', result)
-            except Exception as e:
-                print ("Could not contact historian. Is it running?")
-                print(e)
 
-        @Core.periodic(10)
-        def pub_fake_data(self):
-            ''' This method publishes fake data for use by the rest of the agent.
-            The format mimics the format used by VOLTTRON drivers.
-            
-            This method can be removed if you have real data to work against.
+        def on_match(self, peer, sender, bus, topic, headers, message):
             '''
-            
-            #Make some random readings
-            oat_reading = random.uniform(30,100)
-            mixed_reading = oat_reading + random.uniform(-5,5)
-            damper_reading = random.uniform(0,100)
-            
-            # Create a message for all points.
-            all_message = [{'OutsideAirTemperature': oat_reading, 'MixedAirTemperature': mixed_reading, 
-                        'DamperSignal': damper_reading},
-                       {'OutsideAirTemperature': {'units': 'F', 'tz': 'UTC', 'type': 'float'},
-                        'MixedAirTemperature': {'units': 'F', 'tz': 'UTC', 'type': 'float'}, 
-                        'DamperSignal': {'units': '%', 'tz': 'UTC', 'type': 'float'}
-                        }]
-            
-            #Create messages for specific points
-            oat_message = [oat_reading,{'units': 'F', 'tz': 'UTC', 'type': 'float'}]
-            mixed_message = [mixed_reading,{'units': 'F', 'tz': 'UTC', 'type': 'float'}]
-            damper_message = [damper_reading,{'units': '%', 'tz': 'UTC', 'type': 'float'}]
-            
-            #Create timestamp
-            now = datetime.utcnow().isoformat(' ') + 'Z'
-            headers = {
-                headers_mod.DATE: now
-            }
-            
-            #Publish messages
-            self.vip.pubsub.publish(
-                'pubsub', all_topic, headers, all_message)
-            
-            self.vip.pubsub.publish(
-                'pubsub', oat_point, headers, oat_message)
-            
-            self.vip.pubsub.publish(
-                'pubsub', mixed_point, headers, mixed_message)
-            
-            self.vip.pubsub.publish(
-                'pubsub', damper_point, headers, damper_message)
-            
+            Subscribes to the platform message bus on the actuator, record,
+            datalogger, and device topics to capture data.
+            '''
+
+
+            _log.debug('GOT DATA FOR: {}'.format(topic))
+
 
 
     return ExampleSubscriber(**kwargs)

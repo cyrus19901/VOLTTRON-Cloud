@@ -105,13 +105,13 @@ def schedule_example(config_path, **kwargs):
 
         @Core.receiver('onstart')            
         def startup(self, sender, **kwargs):
-#             self.publish_schedule()
-            self.use_rpc()
+            self.publish_schedule()
+ #           self.use_rpc()
     
     
     
-        @PubSub.subscribe('pubsub', topics.ACTUATOR_SCHEDULE_ANNOUNCE(campus='campus',
-                                             building='building',unit='unit'))
+        @PubSub.subscribe('pubsub', topics.ACTUATOR_SCHEDULE_ANNOUNCE(campus='pnnl',
+                                             building='etb',unit='hvac1'))
         def actuate(self, peer, sender, bus,  topic, headers, message):
             print ("response:",topic,headers,message)
             if headers[headers_mod.REQUESTER_ID] != agent_id:
@@ -123,10 +123,10 @@ def schedule_example(config_path, **kwargs):
                         'requesterID': agent_id,
                        }
             self.vip.pubsub.publish(
-            'pubsub', topics.ACTUATOR_SET(campus='campus',
-                                             building='building',unit='unit',
-                                             point='point'),
-                                     headers, str(0.0))
+            'pubsub', topics.ACTUATOR_SET(campus='pnnl',
+                                             building='etb',unit='hvac1',
+                                             point='AV1'),
+                                     headers, str(0.4))
     
         
         def publish_schedule(self):
@@ -135,16 +135,16 @@ def schedule_example(config_path, **kwargs):
                         'AgentID': agent_id,
                         'type': 'NEW_SCHEDULE',
                         'requesterID': agent_id, #The name of the requesting agent.
-                        'taskID': agent_id + "-ExampleTask", #The desired task ID for this task. It must be unique among all other scheduled tasks.
-                        'priority': 'LOW', #The desired task priority, must be 'HIGH', 'LOW', or 'LOW_PREEMPT'
+                        'taskID': agent_id + "-ExampleTask2", #The desired task ID for this task. It must be unique among all other scheduled tasks.
+                        'priority': 'HIGH', #The desired task priority, must be 'HIGH', 'LOW', or 'LOW_PREEMPT'
                     } 
             
             start = str(datetime.datetime.now())
-            end = str(datetime.datetime.now() + datetime.timedelta(minutes=1))
+            end = str(datetime.datetime.now() + datetime.timedelta(minutes=2))
     
     
             msg = [
-                   ['campus/building/unit',start,end]
+                   ['pnnl/etb/hvac1',start,end]
                    #Could add more devices
     #                 ["campus/building/device1", #First time slot.
     #                  "2014-1-31 12:27:00",     #Start of time slot.
@@ -162,39 +162,52 @@ def schedule_example(config_path, **kwargs):
             
             
         def use_rpc(self):
-            try: 
+          try: 
                 start = str(datetime.datetime.now())
                 end = str(datetime.datetime.now() + datetime.timedelta(minutes=1))
-    
+
                 msg = [
-                   ['campus/building/unit3',start,end]
+                   ['pnnl/etb/hvac1',start,end]
                    ]
+                
                 result = self.vip.rpc.call(
                                            'platform.actuator', 
                                            'request_new_schedule',
                                            agent_id, 
-                                           "some task",
-                                           'LOW',
+                                           "test-heat1",
+                                           'HIGH',
                                            msg).get(timeout=10)
-                print("schedule result", result)
-            except Exception as e:
-                print ("Could not contact actuator. Is it running?")
-                print(e)
-                return
-            
-            try:
+                _log.debug("schedule RESULT: {}".format(result))
+          except Exception as e:
+                 print ("Could not contact actuator. Is it running?")
+                 print(e)
+                 return
+
+          try:
                 if result['result'] == 'SUCCESS':
-                    result = self.vip.rpc.call(
-                                           'platform.actuator', 
-                                           'set_point',
-                                           agent_id, 
-                                           'campus/building/unit3/some_point',
-                                           '0.0').get(timeout=10)
-                    print("Set result", result)
-            except Exception as e:
+                   result = self.vip.rpc.call(
+                                          'platform.actuator',
+                                          'set_point',
+                                          agent_id,
+                                          'pnnl/etb/hvac1/testing',
+                                          '60.0').get(timeout=10)
+                   _log.debug("set RESULT: {}".format(result))
+          except Exception as e:
                 print ("Expected to fail since there is no real device to set")
-                print(e)    
-                
+                print(e)
+#           try:
+#                  if result['result'] == 'SUCCESS':
+#                      result = self.vip.rpc.call(
+#                                        'platform.actuator',
+#                                        'get_point',
+#                                        'pnnl/etb/hvac1/AV1').get(timeout=10)
+#                      _log.debug("get RESULT: {}".format(result))
+#           except Exception as e:
+#                   print ("FAILURE")
+#                   print(e)
+             
+           
+                 
                 
             
             

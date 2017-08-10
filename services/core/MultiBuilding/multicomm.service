@@ -1,3 +1,5 @@
+#buildings messaging bus
+
 {
     "building-publish-address": "tcp://0.0.0.0:12201",
     "building-subscribe-address": "tcp://0.0.0.0:12202",
